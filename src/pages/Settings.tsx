@@ -1,13 +1,11 @@
 import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import {
   Users, GitBranch, Database, Users2, Plug2, Bell, Palette,
   Plus, Edit2, Trash2, Save, Check, X, ChevronDown, ChevronUp,
-  GripVertical, User, Mail, Shield, Key, Download, Building2,
-  Globe, Lock,
+  GripVertical, Mail, Shield, Key, Globe,
 } from 'lucide-react'
 import {
-  Button, Avatar, Badge, Input, Select, Modal, Textarea,
+  Button, Avatar, Input, Select, Modal, Textarea,
 } from '../components/ui'
 import { useUserStore, useUIStore, usePipelineStore } from '../store'
 import { cn, generateId } from '../utils'
@@ -781,19 +779,369 @@ function IntegracionesSection() {
   )
 }
 
-// ─── Placeholder sections ─────────────────────────────────
+// ─── PROPIEDADES section ──────────────────────────────────
 
-function PlaceholderSection({ title, description }: { title: string; description: string }) {
+type PropType = 'text' | 'number' | 'date' | 'select' | 'checkbox' | 'phone' | 'email' | 'url'
+type PropEntity = 'contact' | 'company' | 'deal' | 'ticket'
+
+interface CRMProperty {
+  id: string
+  name: string
+  label: string
+  type: PropType
+  entity: PropEntity
+  isRequired: boolean
+  isBuiltIn: boolean
+  group: string
+  options?: string[]
+}
+
+const INITIAL_PROPERTIES: CRMProperty[] = [
+  // Contact built-in
+  { id: 'p1', name: 'firstName', label: 'Nombre', type: 'text', entity: 'contact', isRequired: true, isBuiltIn: true, group: 'Información básica' },
+  { id: 'p2', name: 'lastName', label: 'Apellido', type: 'text', entity: 'contact', isRequired: true, isBuiltIn: true, group: 'Información básica' },
+  { id: 'p3', name: 'email', label: 'Email', type: 'email', entity: 'contact', isRequired: true, isBuiltIn: true, group: 'Información básica' },
+  { id: 'p4', name: 'phone', label: 'Teléfono', type: 'phone', entity: 'contact', isRequired: false, isBuiltIn: true, group: 'Información básica' },
+  { id: 'p5', name: 'jobTitle', label: 'Cargo', type: 'text', entity: 'contact', isRequired: false, isBuiltIn: true, group: 'Información básica' },
+  { id: 'p6', name: 'lifecycleStage', label: 'Etapa del ciclo de vida', type: 'select', entity: 'contact', isRequired: false, isBuiltIn: true, group: 'CRM', options: ['subscriber', 'lead', 'marketing_qualified', 'sales_qualified', 'opportunity', 'customer', 'evangelist'] },
+  { id: 'p7', name: 'leadScore', label: 'Lead Score', type: 'number', entity: 'contact', isRequired: false, isBuiltIn: true, group: 'CRM' },
+  { id: 'p8', name: 'source', label: 'Fuente', type: 'select', entity: 'contact', isRequired: false, isBuiltIn: true, group: 'CRM', options: ['organic_search', 'paid_ads', 'referral', 'social_media', 'email', 'event', 'direct'] },
+  // Company built-in
+  { id: 'p9', name: 'companyName', label: 'Nombre empresa', type: 'text', entity: 'company', isRequired: true, isBuiltIn: true, group: 'Información básica' },
+  { id: 'p10', name: 'domain', label: 'Dominio web', type: 'url', entity: 'company', isRequired: false, isBuiltIn: true, group: 'Información básica' },
+  { id: 'p11', name: 'industry', label: 'Industria', type: 'select', entity: 'company', isRequired: false, isBuiltIn: true, group: 'Información básica' },
+  { id: 'p12', name: 'annualRevenue', label: 'Ingresos anuales', type: 'number', entity: 'company', isRequired: false, isBuiltIn: true, group: 'Financiero' },
+  { id: 'p13', name: 'employeeCount', label: 'N° empleados', type: 'number', entity: 'company', isRequired: false, isBuiltIn: true, group: 'Información básica' },
+  // Deal built-in
+  { id: 'p14', name: 'dealName', label: 'Nombre del deal', type: 'text', entity: 'deal', isRequired: true, isBuiltIn: true, group: 'Información básica' },
+  { id: 'p15', name: 'value', label: 'Valor', type: 'number', entity: 'deal', isRequired: false, isBuiltIn: true, group: 'Financiero' },
+  { id: 'p16', name: 'closeDate', label: 'Fecha de cierre', type: 'date', entity: 'deal', isRequired: false, isBuiltIn: true, group: 'CRM' },
+  { id: 'p17', name: 'probability', label: 'Probabilidad (%)', type: 'number', entity: 'deal', isRequired: false, isBuiltIn: true, group: 'CRM' },
+  // Custom
+  { id: 'p18', name: 'linkedinUrl', label: 'LinkedIn URL', type: 'url', entity: 'contact', isRequired: false, isBuiltIn: false, group: 'Redes sociales' },
+  { id: 'p19', name: 'birthDate', label: 'Fecha de nacimiento', type: 'date', entity: 'contact', isRequired: false, isBuiltIn: false, group: 'Información básica' },
+  { id: 'p20', name: 'preferredLanguage', label: 'Idioma preferido', type: 'select', entity: 'contact', isRequired: false, isBuiltIn: false, group: 'Preferencias', options: ['Español', 'Inglés', 'Portugués', 'Francés'] },
+  { id: 'p21', name: 'contractValue', label: 'Valor contrato anual', type: 'number', entity: 'company', isRequired: false, isBuiltIn: false, group: 'Financiero' },
+]
+
+const PROP_TYPE_LABELS: Record<PropType, string> = {
+  text: 'Texto', number: 'Número', date: 'Fecha', select: 'Lista desplegable',
+  checkbox: 'Casilla', phone: 'Teléfono', email: 'Email', url: 'URL',
+}
+
+const ENTITY_COLORS: Record<PropEntity, string> = {
+  contact: 'bg-blue-50 text-blue-700',
+  company: 'bg-purple-50 text-purple-700',
+  deal: 'bg-teal-50 text-teal-700',
+  ticket: 'bg-orange-50 text-orange-700',
+}
+
+const ENTITY_LABELS: Record<PropEntity, string> = {
+  contact: 'Contacto', company: 'Empresa', deal: 'Deal', ticket: 'Ticket',
+}
+
+function PropiedadesSection() {
+  const { addToast } = useUIStore()
+  const [properties, setProperties] = useState<CRMProperty[]>(INITIAL_PROPERTIES)
+  const [filterEntity, setFilterEntity] = useState<PropEntity | ''>('')
+  const [modalOpen, setModalOpen] = useState(false)
+  const [form, setForm] = useState({ label: '', name: '', type: 'text' as PropType, entity: 'contact' as PropEntity, group: '', isRequired: false })
+
+  const filtered = filterEntity ? properties.filter(p => p.entity === filterEntity) : properties
+
+  const handleAdd = () => {
+    if (!form.label.trim()) return
+    const newProp: CRMProperty = {
+      id: generateId(),
+      name: form.name || form.label.toLowerCase().replace(/\s+/g, '_'),
+      label: form.label,
+      type: form.type,
+      entity: form.entity,
+      isRequired: form.isRequired,
+      isBuiltIn: false,
+      group: form.group || 'Personalizado',
+    }
+    setProperties(p => [...p, newProp])
+    addToast({ type: 'success', title: 'Propiedad creada', message: `"${form.label}" fue agregada exitosamente.` })
+    setModalOpen(false)
+    setForm({ label: '', name: '', type: 'text', entity: 'contact', group: '', isRequired: false })
+  }
+
+  const handleDelete = (id: string) => {
+    const prop = properties.find(p => p.id === id)
+    if (prop?.isBuiltIn) return
+    setProperties(p => p.filter(x => x.id !== id))
+    addToast({ type: 'success', title: 'Propiedad eliminada' })
+  }
+
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-lg font-bold text-gray-900">{title}</h2>
-        <p className="text-sm text-gray-500 mt-0.5">{description}</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-bold text-gray-900">Propiedades personalizadas</h2>
+          <p className="text-sm text-gray-500 mt-0.5">Define campos para contactos, empresas, deals y tickets.</p>
+        </div>
+        <Button variant="primary" size="sm" icon={<Plus className="w-4 h-4" />} onClick={() => setModalOpen(true)}>
+          Nueva propiedad
+        </Button>
       </div>
-      <div className="card p-12 flex flex-col items-center justify-center text-center gap-3 text-gray-400">
-        <Globe className="w-10 h-10" />
-        <p className="text-sm">Esta sección estará disponible próximamente.</p>
+
+      {/* Entity filter */}
+      <div className="flex items-center gap-2">
+        {[{ label: 'Todos', value: '' }, { label: 'Contacto', value: 'contact' }, { label: 'Empresa', value: 'company' }, { label: 'Deal', value: 'deal' }, { label: 'Ticket', value: 'ticket' }].map(opt => (
+          <button
+            key={opt.value}
+            onClick={() => setFilterEntity(opt.value as PropEntity | '')}
+            className={cn('filter-chip', filterEntity === opt.value && 'active')}
+          >
+            {opt.label}
+          </button>
+        ))}
+        <span className="ml-auto text-xs text-gray-400">{filtered.length} propiedades</span>
       </div>
+
+      <div className="card overflow-hidden">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-gray-100 bg-gray-50/50">
+              <th className="table-header pl-4">Etiqueta</th>
+              <th className="table-header">Nombre interno</th>
+              <th className="table-header">Tipo</th>
+              <th className="table-header">Entidad</th>
+              <th className="table-header">Grupo</th>
+              <th className="table-header">Tipo</th>
+              <th className="table-header w-20 text-right pr-4">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map(prop => (
+              <tr key={prop.id} className="border-b border-gray-50 hover:bg-gray-50/60 transition-colors">
+                <td className="table-cell pl-4">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-gray-900">{prop.label}</span>
+                    {prop.isRequired && <span className="text-xs text-red-400">*</span>}
+                  </div>
+                </td>
+                <td className="table-cell">
+                  <code className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">{prop.name}</code>
+                </td>
+                <td className="table-cell">
+                  <span className="text-xs text-gray-600">{PROP_TYPE_LABELS[prop.type]}</span>
+                </td>
+                <td className="table-cell">
+                  <span className={cn('text-xs px-2 py-0.5 rounded-full font-medium', ENTITY_COLORS[prop.entity])}>
+                    {ENTITY_LABELS[prop.entity]}
+                  </span>
+                </td>
+                <td className="table-cell">
+                  <span className="text-xs text-gray-500">{prop.group}</span>
+                </td>
+                <td className="table-cell">
+                  <span className={cn('text-xs px-1.5 py-0.5 rounded font-medium', prop.isBuiltIn ? 'bg-gray-100 text-gray-500' : 'bg-primary/10 text-primary')}>
+                    {prop.isBuiltIn ? 'Sistema' : 'Personalizado'}
+                  </span>
+                </td>
+                <td className="table-cell text-right pr-4">
+                  {!prop.isBuiltIn && (
+                    <button
+                      onClick={() => handleDelete(prop.id)}
+                      className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Nueva propiedad" size="sm">
+        <div className="space-y-3">
+          <Input label="Etiqueta visible" placeholder="Ej: Tamaño de empresa" required value={form.label} onChange={e => setForm(f => ({ ...f, label: e.target.value }))} />
+          <Input label="Nombre interno (snake_case)" placeholder="Ej: company_size" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
+          <div className="grid grid-cols-2 gap-3">
+            <Select label="Tipo de dato" value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value as PropType }))}
+              options={Object.entries(PROP_TYPE_LABELS).map(([v, l]) => ({ value: v, label: l }))} />
+            <Select label="Entidad" value={form.entity} onChange={e => setForm(f => ({ ...f, entity: e.target.value as PropEntity }))}
+              options={Object.entries(ENTITY_LABELS).map(([v, l]) => ({ value: v, label: l }))} />
+          </div>
+          <Input label="Grupo" placeholder="Ej: Información básica" value={form.group} onChange={e => setForm(f => ({ ...f, group: e.target.value }))} />
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked={form.isRequired} onChange={e => setForm(f => ({ ...f, isRequired: e.target.checked }))} className="rounded" />
+            <span className="text-sm text-gray-700">Campo requerido</span>
+          </label>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="ghost" onClick={() => setModalOpen(false)}>Cancelar</Button>
+            <Button variant="primary" onClick={handleAdd} disabled={!form.label.trim()}>Crear propiedad</Button>
+          </div>
+        </div>
+      </Modal>
+    </div>
+  )
+}
+
+// ─── EQUIPOS section ──────────────────────────────────────
+
+interface Team {
+  id: string
+  name: string
+  description: string
+  color: string
+  memberIds: string[]
+  managerId: string
+}
+
+const INITIAL_TEAMS: Team[] = [
+  { id: 't1', name: 'Ventas México', description: 'Equipo principal de ventas para mercado mexicano.', color: '#002DA4', memberIds: ['u2', 'u3', 'u4', 'u5'], managerId: 'u2' },
+  { id: 't2', name: 'Customer Success', description: 'Atención al cliente y soporte post-venta.', color: '#2AD4AE', memberIds: ['u4', 'u7'], managerId: 'u4' },
+  { id: 't3', name: 'Marketing', description: 'Estrategia de marketing y generación de demanda.', color: '#8B5CF6', memberIds: ['u6', 'u5'], managerId: 'u6' },
+]
+
+const TEAM_COLORS = ['#002DA4', '#2AD4AE', '#001E5D', '#7C3AED', '#DC2626', '#059669', '#D97706', '#0891B2']
+
+function EquiposSection() {
+  const { users } = useUserStore()
+  const { addToast } = useUIStore()
+  const [teams, setTeams] = useState<Team[]>(INITIAL_TEAMS)
+  const [modalOpen, setModalOpen] = useState(false)
+  const [editTeam, setEditTeam] = useState<Team | null>(null)
+  const [form, setForm] = useState({ name: '', description: '', color: '#002DA4', managerId: 'u2', memberIds: [] as string[] })
+
+  const userMap = Object.fromEntries(users.map(u => [u.id, u]))
+
+  const openNew = () => {
+    setEditTeam(null)
+    setForm({ name: '', description: '', color: '#002DA4', managerId: 'u2', memberIds: [] })
+    setModalOpen(true)
+  }
+
+  const openEdit = (team: Team) => {
+    setEditTeam(team)
+    setForm({ name: team.name, description: team.description, color: team.color, managerId: team.managerId, memberIds: [...team.memberIds] })
+    setModalOpen(true)
+  }
+
+  const handleSave = () => {
+    if (!form.name.trim()) return
+    if (editTeam) {
+      setTeams(ts => ts.map(t => t.id === editTeam.id ? { ...t, ...form } : t))
+      addToast({ type: 'success', title: 'Equipo actualizado' })
+    } else {
+      setTeams(ts => [...ts, { id: generateId(), ...form }])
+      addToast({ type: 'success', title: 'Equipo creado' })
+    }
+    setModalOpen(false)
+  }
+
+  const handleDelete = (id: string) => {
+    setTeams(ts => ts.filter(t => t.id !== id))
+    addToast({ type: 'success', title: 'Equipo eliminado' })
+  }
+
+  const toggleMember = (userId: string) => {
+    setForm(f => ({
+      ...f,
+      memberIds: f.memberIds.includes(userId)
+        ? f.memberIds.filter(id => id !== userId)
+        : [...f.memberIds, userId],
+    }))
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-bold text-gray-900">Equipos</h2>
+          <p className="text-sm text-gray-500 mt-0.5">Organiza a los usuarios en equipos y asigna responsabilidades.</p>
+        </div>
+        <Button variant="primary" size="sm" icon={<Plus className="w-4 h-4" />} onClick={openNew}>
+          Nuevo equipo
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {teams.map(team => {
+          const manager = userMap[team.managerId]
+          const members = team.memberIds.map(id => userMap[id]).filter(Boolean)
+          return (
+            <div key={team.id} className="card p-5">
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0" style={{ backgroundColor: team.color }}>
+                    {team.name.charAt(0)}
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900 text-sm">{team.name}</h3>
+                    <p className="text-xs text-gray-500 mt-0.5">{team.description}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button onClick={() => openEdit(team)} className="p-1.5 rounded text-gray-400 hover:text-primary hover:bg-primary/10 transition-colors">
+                    <Edit2 className="w-3.5 h-3.5" />
+                  </button>
+                  <button onClick={() => handleDelete(team.id)} className="p-1.5 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+              {manager && (
+                <div className="flex items-center gap-2 mb-3 text-xs text-gray-500">
+                  <Avatar name={`${manager.firstName} ${manager.lastName}`} size="xs" />
+                  <span>Manager: <span className="font-medium text-gray-700">{manager.firstName} {manager.lastName}</span></span>
+                </div>
+              )}
+              <div>
+                <p className="text-xs text-gray-400 mb-2">{members.length} miembros</p>
+                <div className="flex items-center gap-1 flex-wrap">
+                  {members.map(m => (
+                    <div key={m.id} title={`${m.firstName} ${m.lastName}`}>
+                      <Avatar name={`${m.firstName} ${m.lastName}`} size="sm" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editTeam ? 'Editar equipo' : 'Nuevo equipo'} size="sm">
+        <div className="space-y-3">
+          <Input label="Nombre del equipo" required value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Ej: Ventas Norte" />
+          <Textarea label="Descripción" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Describe el propósito del equipo" rows={2} />
+          <div>
+            <p className="text-xs font-medium text-gray-700 mb-2">Color</p>
+            <div className="flex gap-2">
+              {TEAM_COLORS.map(c => (
+                <button key={c} onClick={() => setForm(f => ({ ...f, color: c }))}
+                  className={cn('w-7 h-7 rounded-lg transition-all', form.color === c ? 'ring-2 ring-offset-1 ring-gray-400 scale-110' : 'hover:scale-105')}
+                  style={{ backgroundColor: c }} />
+              ))}
+            </div>
+          </div>
+          <Select label="Manager" value={form.managerId} onChange={e => setForm(f => ({ ...f, managerId: e.target.value }))}
+            options={users.filter(u => u.isActive).map(u => ({ value: u.id, label: `${u.firstName} ${u.lastName}` }))} />
+          <div>
+            <p className="text-xs font-medium text-gray-700 mb-2">Miembros</p>
+            <div className="space-y-1 max-h-40 overflow-y-auto">
+              {users.filter(u => u.isActive).map(u => (
+                <label key={u.id} className="flex items-center gap-2 cursor-pointer p-1.5 rounded hover:bg-gray-50">
+                  <input type="checkbox" checked={form.memberIds.includes(u.id)} onChange={() => toggleMember(u.id)} className="rounded" />
+                  <Avatar name={`${u.firstName} ${u.lastName}`} size="xs" />
+                  <span className="text-sm text-gray-700">{u.firstName} {u.lastName}</span>
+                  <span className="text-xs text-gray-400 ml-auto">{u.title}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="ghost" onClick={() => setModalOpen(false)}>Cancelar</Button>
+            <Button variant="primary" onClick={handleSave} disabled={!form.name.trim()}>{editTeam ? 'Guardar' : 'Crear equipo'}</Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }
@@ -997,10 +1345,8 @@ export default function Settings() {
       case 'integraciones': return <IntegracionesSection />
       case 'notificaciones': return <NotificacionesSection />
       case 'apariencia': return <AparienciaSection />
-      case 'propiedades':
-        return <PlaceholderSection title="Propiedades personalizadas" description="Define campos personalizados para contactos, empresas y deals." />
-      case 'equipos':
-        return <PlaceholderSection title="Equipos" description="Organiza a los usuarios en equipos y asigna responsabilidades." />
+      case 'propiedades': return <PropiedadesSection />
+      case 'equipos': return <EquiposSection />
       default: return null
     }
   }

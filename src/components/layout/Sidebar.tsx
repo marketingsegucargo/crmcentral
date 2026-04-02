@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Users, Building2, TrendingUp, Ticket, CheckSquare,
   Activity, Mail, GitBranch, BarChart3, Package, FileText, Inbox,
   Settings, ChevronDown, ChevronRight, ChevronsLeft, ChevronsRight,
-  Star
+  Target, Zap, TrendingDown
 } from 'lucide-react'
 import { cn } from '../../utils'
 import { useUIStore } from '../../store'
@@ -102,11 +102,14 @@ export function Sidebar() {
         <NavGroup label="Marketing" collapsed={sidebarCollapsed}>
           <NavItem to="/email-marketing" icon={<Mail className="w-5 h-5" />} label="Email Marketing" collapsed={sidebarCollapsed} />
           <NavItem to="/sequences" icon={<GitBranch className="w-5 h-5" />} label="Secuencias" collapsed={sidebarCollapsed} />
+          <NavItem to="/workflows" icon={<Zap className="w-5 h-5" />} label="Automatizaciones" collapsed={sidebarCollapsed} />
         </NavGroup>
 
         <NavGroup label="Ventas" collapsed={sidebarCollapsed}>
           <NavItem to="/products" icon={<Package className="w-5 h-5" />} label="Productos" collapsed={sidebarCollapsed} />
           <NavItem to="/quotes" icon={<FileText className="w-5 h-5" />} label="Cotizaciones" collapsed={sidebarCollapsed} />
+          <NavItem to="/forecast" icon={<TrendingDown className="w-5 h-5" />} label="Pronóstico" collapsed={sidebarCollapsed} />
+          <NavItem to="/goals" icon={<Target className="w-5 h-5" />} label="Metas" collapsed={sidebarCollapsed} />
         </NavGroup>
 
         <NavGroup label="Comunicación" collapsed={sidebarCollapsed}>

@@ -21,6 +21,9 @@ import Quotes from './pages/Quotes'
 import QuoteDetail from './pages/QuoteDetail'
 import Inbox from './pages/Inbox'
 import Settings from './pages/Settings'
+import Forecast from './pages/Forecast'
+import Workflows from './pages/Workflows'
+import Goals from './pages/Goals'
 
 export default function App() {
   return (
@@ -47,6 +50,9 @@ export default function App() {
         <Route path="inbox" element={<Inbox />} />
         <Route path="inbox/:id" element={<Inbox />} />
         <Route path="settings/*" element={<Settings />} />
+        <Route path="forecast" element={<Forecast />} />
+        <Route path="workflows" element={<Workflows />} />
+        <Route path="goals" element={<Goals />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Route>
     </Routes>
